@@ -6,6 +6,11 @@ defmodule UniMux do
 
     children = for client <- Application.get_env(:unimux, :routes, []) do
       {name, url} = client
+      Enum.each(:exometer_report.list_reporters, fn(reporter) ->
+        :exometer_report.subscribe(reporter, [:unimux, String.to_atom(name), :resolved], :value, 1000,
+                                   [{:unimux, {:from_name, 2}}], true)
+        :exometer_report.subscribe(reporter, [:unimux, :not_resolved], :value, 1000, [], true)
+      end)
       worker(Hello.Client, [{:local, namespace(name)}, url, {[], [], []}], id: namespace(name))
     end
     listener_url = Application.get_env(:unimux, :listen, 'zmq-tcp://0.0.0.0')
@@ -24,8 +29,11 @@ defmodule UniMux do
 
   def handle_request(_context, method, args, state) do
     case resolve(method) do
-      nil -> {:stop, :not_found, {:ok, :not_found}, state}
+      nil ->
+        :exometer.update_or_create([:unimux, :not_resolved], 1, :counter, [])
+        {:stop, :not_found, {:ok, :not_found}, state}
       name ->
+        :exometer.update_or_create([:unimux, name, :resolved], 1, :counter, [])
         r = Hello.Client.call(name, {method, args, []})
         {:stop, :normal, r, state}
     end
@@ -44,7 +52,7 @@ defmodule UniMux do
     splittedMethod = method |> :hello_lib.to_binary |> String.split(".", [:global])
     resolve(splittedMethod, names)
   end
-  
+
   defp resolve([], _), do: nil
   defp resolve(_, []), do: nil
   defp resolve(method, names) do

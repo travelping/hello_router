@@ -33,6 +33,7 @@ defmodule UniMux.Mixfile do
      {:exrm, github: "xerions/exrm", override: true},
      {:coverex, github: "alfert/coverex", tag: "v1.4.3", only: :test},
      {:meck, github: "eproxus/meck", tag: "0.8.3", override: true},
+     {:hackney, "~> 1.4.4", override: true},
      {:mock, github: "jjh42/mock"}]
   end
 end

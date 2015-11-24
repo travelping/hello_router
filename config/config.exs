@@ -11,3 +11,10 @@ metricman_config = "deps/metricman/config/config.exs"
 if File.exists? metricman_config do
   import_config "../" <> metricman_config
 end
+
+try do
+  import_config "../deps/metricman/config/config.exs"
+rescue
+  _ in _ ->
+    :skip
+end

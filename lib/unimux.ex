@@ -6,6 +6,10 @@ defmodule UniMux do
 
     children = for client <- Application.get_env(:unimux, :routes, []) do
       {name, url, t} = client
+      for reporter <- :exometer_report.list_reporters do
+        :exometer_report.subscribe(reporter, [:unimux, String.to_atom(name), :resolved], :value, 1000, [{:unimux, {:from_name, 2}}], true)
+        :exometer_report.subscribe(reporter, [:unimux, :not_resolved], :value, 1000, [], true)
+      end
       worker(Hello.Client, [{:local, namespace(name)}, url, {[{:recv_timeout, timeout(t)}], [], []}], id: namespace(name))
     end
     # Set hello server timeout to the maximum value of client's timeouts 
@@ -13,7 +17,7 @@ defmodule UniMux do
     timeouts = for {_, _, t} <- Application.get_env(:unimux, :routes, []), do: timeout(t)
     Application.put_env(:hello, :server_timeout, Enum.max(timeouts ++ [timeout(:defaut)]) + 500)
     listener_url = Application.get_env(:unimux, :listen, 'zmq-tcp://0.0.0.0')
-    Hello.start_listener(listener_url, [], :hello_proto_jsonrpc, [], UniMux.Router)
+    Hello.start_listener(:unimux, listener_url, [], :hello_proto_jsonrpc, [], UniMux.Router)
     Hello.bind(listener_url, __MODULE__)
     opts = [strategy: :one_for_one, name: UniMux.Supervisor]
     Supervisor.start_link(children, opts)
@@ -28,8 +32,11 @@ defmodule UniMux do
 
   def handle_request(_context, method, args, state) do
     case resolve(method) do
-      nil -> {:stop, :not_found, {:ok, :not_found}, state}
+      nil ->
+        :exometer.update_or_create([:unimux, :not_resolved], 1, :counter, [])
+        {:stop, :not_found, {:ok, :not_found}, state}
       {name, timeout} ->
+        :exometer.update_or_create([:unimux, name, :resolved], 1, :counter, [])
         r = Hello.Client.call(name, {method, args, []}, timeout)
         {:stop, :normal, r, state}
     end
@@ -63,7 +70,7 @@ defmodule UniMux do
   defp timeout(_), do: Application.get_env(:unimux, :default_timeout)
 
   defp namespace(name) do
-    String.to_atom("hello_client_" <> name)
+    String.to_atom("unimux_" <> name)
   end
 end
 

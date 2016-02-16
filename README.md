@@ -45,3 +45,12 @@ Build release on builder, which does download dependencies for you, use release 
 Building the documentation:
 
     $> mix docs
+
+## Metrics
+
+UniMux collects the following metrics via exometer_core and reports it to the each registered reporters: 
+
+| Exometer ID                         | Type    | Data Point | Report Time |
+|-------------------------------------|---------|------------|-------------|
+| [:unimux, Prefix, :resolved]        | counter |    value   |   1000      |
+| [:unimux, :not_resolved]            | counter |    value   |   1000      |

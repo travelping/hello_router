@@ -22,10 +22,10 @@ defmodule UniMuxTest do
   test_with_mock "handle request - ok", :hello_client, [call: fn(name, _, timeout) -> {:ok, name, timeout} end] do
     state = []
     Application.put_env(:unimux, :routes, [{"a", 'http://127.0.0.1:8080', 10000}])
-    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :hello_client_a, 10000}, state}  
+    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :unimux_a, 10000}, state}  
 
     Application.put_env(:unimux, :routes, [{"a", 'http://127.0.0.1:8080', 10000}, {"a.b", "http://127.0.0.1:8081", 20000}])
-    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :"hello_client_a.b", 20000}, state}
+    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :"unimux_a.b", 20000}, state}
   end
 
   test "router" do
@@ -40,10 +40,10 @@ defmodule UniMuxTest do
   test_with_mock "default_timeout", :hello_client, [call: fn(name, _, timeout) -> {:ok, name, timeout} end] do
     state = []
     Application.put_env(:unimux, :routes, [{"a", 'http://127.0.0.1:8080', :undefined}, {"a.b", "http://127.0.0.1:8081", :undefined}])
-    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :"hello_client_a.b", 10000}, state}
+    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :"unimux_a.b", 10000}, state}
 
     Application.put_env(:unimux, :default_timeout, 20000)
     Application.put_env(:unimux, :routes, [{"a", 'http://127.0.0.1:8080', :undefined}, {"a.b", "http://127.0.0.1:8081", :undefined}])
-    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :"hello_client_a.b", 20000}, state}
+    assert UniMux.handle_request(:context, "a.b.c", [], state) == {:stop, :normal, {:ok, :"unimux_a.b", 20000}, state}
   end
 end

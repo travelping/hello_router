@@ -8,9 +8,11 @@ config :unimux,
   listen: 'zmq-tcp://127.0.0.1:20000',
   default_timeout: 10000
 
-metricman_config = "deps/metricman/config/config.exs"
-if File.exists? metricman_config do
-  import_config "../" <> metricman_config
+try do
+    import_config "../deps/metricman/config/config.exs"
+rescue
+    _ in _ ->
+          :skip
 end
 
 config :setup, :home, '/tmp'
